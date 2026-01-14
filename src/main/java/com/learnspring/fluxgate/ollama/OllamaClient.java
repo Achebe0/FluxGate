@@ -1,9 +1,8 @@
 package com.learnspring.fluxgate.ollama;
 
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-@Component
+// Removed @Component because we are creating beans manually in OllamaConfig
 public class OllamaClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
