@@ -31,6 +31,7 @@ public class LlmService {
         Rules:
         - Reduce tokens by 30-50% by removing fluff, repetition, politeness.
         - Make it direct and structured.
+        - STRICTLY PRESERVE all constraints (word count, format, style, JSON output, etc.).
         - Add "Answer step-by-step" only for complex reasoning/math/analysis tasks.
         - For simple facts/definitions, keep concise — no extras.
         - Never add examples unless requested.
@@ -39,6 +40,9 @@ public class LlmService {
         Examples:
         Original: "Hey, can you please explain in a simple way what quantum computing is?"
         Optimized: Explain quantum computing simply for beginners.
+        
+        Original: "Write a 500-word essay about cats."
+        Optimized: Write a 500-word essay about cats.
         
         Original: "Think carefully: A bat and ball cost $1.10. The bat costs $1 more than the ball. How much is the ball?"
         Optimized: Answer step-by-step: A bat and ball cost $1.10 total. The bat costs $1.00 more than the ball. How much does the ball cost?
@@ -94,12 +98,12 @@ public class LlmService {
 
         if (optimizedTokens >= COMPLEXITY_THRESHOLD_TOKENS) {
             // Complex task
-            modelId = "llama3.1:8b"; // Simulating "gpt-4" or "llama3:70b"
-            selectedModel = modelId; 
+            modelId = "llama3.1:8b"; 
+            selectedModel = "High-Performance Model (" + modelId + ")";
         } else {
             // Simple task
             modelId = "llama3.1:8b"; 
-            selectedModel = modelId;
+            selectedModel = "Fast Model (" + modelId + ")";
         }
 
         // 3. Generate Final Response using the selected model
@@ -107,7 +111,7 @@ public class LlmService {
                 .model(modelId)
                 .messages(List.of(new ChatMessage("user", optimizedPrompt)))
                 .temperature(0.7)
-                .maxTokens(1024)
+                .maxTokens(10240) // Increased from 1024 to 4096
                 .build();
 
         String finalResponse = ollamaClient.createChatCompletion(finalRequest)
@@ -120,7 +124,7 @@ public class LlmService {
                 optimizedTokens,
                 savings,
                 finalResponse,
-                selectedModel // Return the actual model name
+                selectedModel // Return the descriptive name
         );
     }
 }
