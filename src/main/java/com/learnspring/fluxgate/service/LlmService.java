@@ -2,6 +2,8 @@ package com.learnspring.fluxgate.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.learnspring.fluxgate.dto.OptimizationResponse;
+import com.learnspring.fluxgate.model.PromptLog;
+import com.learnspring.fluxgate.repository.PromptLogRepository;
 import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.theokanning.openai.client.OpenAiApi;
@@ -21,6 +23,7 @@ public class LlmService {
 
     private final OpenAiService ollamaClient;
     private final Encoding tokenEncoder;
+    private final PromptLogRepository promptLogRepository;
 
     // Threshold for switching to a "complex" model
     private static final int COMPLEXITY_THRESHOLD_TOKENS = 50;
@@ -50,10 +53,13 @@ public class LlmService {
         Now optimize this prompt:
         """;
 
-    public LlmService() {
+    public LlmService(PromptLogRepository promptLogRepository) {
+        this.promptLogRepository = promptLogRepository;
+        
         // Configure for Ollama (local)
         String token = "ollama";
-        Duration timeout = Duration.ofSeconds(90);
+        // Increased timeout to 300 seconds (5 minutes) for slow local inference
+        Duration timeout = Duration.ofSeconds(300);
         
         ObjectMapper mapper = OpenAiService.defaultObjectMapper();
         OkHttpClient client = OpenAiService.defaultClient(token, timeout);
@@ -111,11 +117,24 @@ public class LlmService {
                 .model(modelId)
                 .messages(List.of(new ChatMessage("user", optimizedPrompt)))
                 .temperature(0.7)
-                .maxTokens(10240) // Increased from 1024 to 4096
+                .maxTokens(4096)
                 .build();
 
         String finalResponse = ollamaClient.createChatCompletion(finalRequest)
                 .getChoices().get(0).getMessage().getContent();
+
+        // 4. Save to Database
+        PromptLog log = PromptLog.builder()
+                .originalPrompt(userPrompt)
+                .optimizedPrompt(optimizedPrompt)
+                .originalTokens(originalTokens)
+                .optimizedTokens(optimizedTokens)
+                .tokenSavingsPercentage(savings)
+                .selectedModel(selectedModel)
+                .finalResponse(finalResponse)
+                .build();
+        
+        promptLogRepository.save(log);
 
         return new OptimizationResponse(
                 userPrompt,
@@ -124,7 +143,7 @@ public class LlmService {
                 optimizedTokens,
                 savings,
                 finalResponse,
-                selectedModel // Return the descriptive name
+                selectedModel
         );
     }
 }
