@@ -1,22 +1,17 @@
 package com.learnspring.fluxgate.controller;
 
-import com.learnspring.fluxgate.dto.OptimizationResponse;
-import com.learnspring.fluxgate.service.LlmService;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/prompt")
-@CrossOrigin(origins = "http://localhost:3000") // Explicitly allow CORS on the controller as well
+@RequestMapping
 public class PromptController {
 
-    private final LlmService llmService;
 
-    public PromptController(LlmService llmService) {
-        this.llmService = llmService;
-    }
+    // function for end point of original prompt
 
-    @PostMapping("/optimize")
-    public OptimizationResponse optimizePrompt(@RequestBody String prompt) {
-        return llmService.optimizeAndGenerate(prompt);
-    }
+
+
+    // function for optimized updated String
+
 }
