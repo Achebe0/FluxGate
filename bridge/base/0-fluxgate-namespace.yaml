@@ -1,8 +1,0 @@
-#! 0-fluxgate-namespace.yaml
-# Generated code, do not edit
-apiVersion: v1
-kind: Namespace
-metadata:
-    name: fluxgate
-    labels:
-        com.docker.compose.project: fluxgate
