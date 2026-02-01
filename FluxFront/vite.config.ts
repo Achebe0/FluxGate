@@ -8,9 +8,9 @@ export default defineConfig({
     host: true, // Listen on all addresses
     port: 5173,
     proxy: {
-      // Proxy API requests to the backend on port 8081
+      // Proxy API requests to the backend on port 8080
       '/api': {
-        target: 'http://localhost:8081',
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
       }
