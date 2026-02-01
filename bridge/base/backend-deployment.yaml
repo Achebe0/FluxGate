@@ -1,0 +1,43 @@
+#! backend-deployment.yaml
+# Generated code, do not edit
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: backend
+    namespace: fluxgate
+    labels:
+        com.docker.compose.project: fluxgate
+        com.docker.compose.service: backend
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            com.docker.compose.project: fluxgate
+            com.docker.compose.service: backend
+    strategy:
+        type: Recreate
+    template:
+        metadata:
+            labels:
+                com.docker.compose.project: fluxgate
+                com.docker.compose.service: backend
+                com.docker.compose.network.default: "true"
+        spec:
+            containers:
+                - name: fluxgate-backend
+                  image: fluxgate-backend
+                  imagePullPolicy: IfNotPresent
+                  env:
+                    - name: CHIMERA_API_KEY
+                      value: ""
+                    - name: DEEPSEEK_API_KEY
+                      value: ""
+                    - name: NVIDIA_API_KEY
+                      value: ""
+                    - name: SPRING_DATASOURCE_URL
+                      value: "jdbc:postgresql://db:5432/fluxgate"
+                    - name: SPRING_RABBITMQ_HOST
+                      value: "rabbitmq"
+                  ports:
+                    - name: backend-8080
+                      containerPort: 8080
