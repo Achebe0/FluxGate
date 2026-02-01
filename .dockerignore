@@ -1,0 +1,14 @@
+# Ignore build artifacts
+target
+.mvn/wrapper/maven-wrapper.jar
+
+# Ignore local environment files
+.env
+
+# Ignore IDE files
+.idea
+*.iml
+
+# Ignore frontend build artifacts and dependencies
+FluxFront/node_modules
+FluxFront/dist
