@@ -1,6 +1,6 @@
 package com.learnspring.fluxgate.model;
 
-public record LlmResponse(
+public record OptimizationResponse(
         String originalPrompt,
         String optimizedPrompt,
         int originalTokens,

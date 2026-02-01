@@ -7,8 +7,8 @@ import { ErrorMessage } from './components/ErrorMessage';
 import { ResultsDisplay } from './components/ResultsDisplay';
 import type {OptimizationResponse} from './types';
 
-// UPDATED: The API_BASE_URL is no longer needed when using a reverse proxy.
-// We will use relative paths for API calls.
+// Use environment variable for Prod, fallback to relative path (proxy) for Dev
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 function App() {
   const [prompt, setPrompt] = useState<string>('');
@@ -24,8 +24,10 @@ function App() {
     setError(null);
     setResult(null);
 
-    // UPDATED: Using a relative URL. Nginx will proxy this to the backend.
-    const url = '/api/prompt/optimize';
+    // Construct the full URL
+    // If API_BASE_URL is '/api', result is '/api/prompt/optimize' (proxied locally)
+    // If API_BASE_URL is 'https://backend.railway.app', result is 'https://backend.railway.app/prompt/optimize'
+    const url = `${API_BASE_URL}/prompt/optimize`;
     console.log('Fetching URL:', url);
 
     try {

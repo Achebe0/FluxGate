@@ -1,38 +1,63 @@
 package com.learnspring.fluxgate.LlmClients;
 
+import com.learnspring.fluxgate.dto.ChatRequest;
+import com.learnspring.fluxgate.dto.ChatResponse;
+import com.learnspring.fluxgate.dto.Message;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-
+import java.util.List;
 
 @Component
 public class ChimeraClient implements LlmProvider {
-// webclient to take the API
-    private final WebClient webClient;
-    private final String modelName = "neversleep/chimera";
 
-    //takes the API key
+    private final WebClient webClient;
+    // OFFICIAL NVIDIA API: Using Llama 3.1 405B (The smartest open model available)
+    private final String modelName = "meta/llama-3.1-405b-instruct";
+
     public ChimeraClient(
-            @Value("${chimera_deepseek.api-key}") String apiKey,
+            // Reusing the NVIDIA key
+            @Value("${nvidia.api-key}") String apiKey,
             WebClient.Builder builder
     ) {
         this.webClient = builder
-                .baseUrl("https://openrouter.ai/api/v1")
+                // GUARANTEED OFFICIAL NVIDIA ENDPOINT
+                .baseUrl("https://integrate.api.nvidia.com/v1")
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .defaultHeader("Content-Type", "application/json")
-                .defaultHeader("HTTP-Referer", "http://localhost:5173")
-                .defaultHeader("LLM_Prompter", "FluxGate")
                 .build();
     }
 
-
     @Override
     public String getName() {
-        return "";
+        return "Nvidia Llama 3.1 405B (Reasoning)";
     }
 
     @Override
     public String generate(String prompt) {
-        return "";
+        ChatRequest request = new ChatRequest(
+            modelName,
+            List.of(new Message("user", prompt)),
+            0.7,
+            2048,
+            false
+        );
+
+        try {
+            ChatResponse response = webClient
+                    .post()
+                    .uri("/chat/completions")
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(ChatResponse.class)
+                    .block();
+
+            if (response != null && !response.choices().isEmpty()) {
+                return response.choices().get(0).message().content();
+            }
+        } catch (Exception e) {
+            return "Error calling Nvidia API (405B): " + e.getMessage();
+        }
+        return "Error: No response from Nvidia API";
     }
 }

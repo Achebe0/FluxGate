@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database Service
+  db:
+    image: postgres:15-alpine
+    container_name: fluxgate-db
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: fluxgate # Automatically creates the database
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  # RabbitMQ Service
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: fluxgate-rabbitmq
+    ports:
+      - "5672:5672"   # For the app
+      - "15672:15672" # For the web UI
+
+  # Backend Service (Spring Boot)
+  backend:
+    build: . # Looks for Dockerfile in the current directory
+    container_name: fluxgate-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # Tells Spring where to find the DB and RabbitMQ
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/fluxgate
+      SPRING_RABBITMQ_HOST: rabbitmq
+      # IMPORTANT: Your API keys go here!
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      CHIMERA_API_KEY: ${CHIMERA_API_KEY}
+    depends_on:
+      - db
+      - rabbitmq
+
+  # Frontend Service (React + Nginx)
+  frontend:
+    build:
+      context: ./FluxFront # Looks for Dockerfile in the FluxFront directory
+    container_name: fluxgate-frontend
+    ports:
+      - "5173:80" # Map host port 5173 to container port 80 (Nginx)
+    depends_on:
+      - backend
+
+volumes:
+  db-data: # This makes your database data persist even if you stop the container

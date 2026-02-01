@@ -5,7 +5,7 @@ public record OptimizationResponse(
     String optimizedPrompt,
     int originalTokens,
     int optimizedTokens,
-    int tokenSavingsPercentage,
+    // tokenSavingsPercentage field removed
     String finalResponse,
     String selectedModel
 ) {}
