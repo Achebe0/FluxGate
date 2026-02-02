@@ -12,20 +12,25 @@ import java.util.List;
 public class ChimeraClient implements LlmProvider {
 
     private final WebClient webClient;
-    // OFFICIAL NVIDIA API: Using Llama 3.1 405B (The smartest open model available)
     private final String modelName = "meta/llama-3.1-405b-instruct";
+    private final boolean enabled;
 
     public ChimeraClient(
-            // Reusing the NVIDIA key
-            @Value("${nvidia.api-key}") String apiKey,
+            @Value("${nvidia.api-key:}") String apiKey, // default empty string
             WebClient.Builder builder
     ) {
-        this.webClient = builder
-                // GUARANTEED OFFICIAL NVIDIA ENDPOINT
-                .baseUrl("https://integrate.api.nvidia.com/v1")
-                .defaultHeader("Authorization", "Bearer " + apiKey)
-                .defaultHeader("Content-Type", "application/json")
-                .build();
+        this.enabled = !apiKey.isEmpty();
+
+        if (enabled) {
+            this.webClient = builder
+                    .baseUrl("https://integrate.api.nvidia.com/v1")
+                    .defaultHeader("Authorization", "Bearer " + apiKey)
+                    .defaultHeader("Content-Type", "application/json")
+                    .build();
+        } else {
+            this.webClient = null; // won’t be used
+            System.out.println("Warning: Nvidia API key not set. ChimeraClient disabled.");
+        }
     }
 
     @Override
@@ -35,12 +40,16 @@ public class ChimeraClient implements LlmProvider {
 
     @Override
     public String generate(String prompt) {
+        if (!enabled) {
+            return "ChimeraClient not configured.";
+        }
+
         ChatRequest request = new ChatRequest(
-            modelName,
-            List.of(new Message("user", prompt)),
-            0.7,
-            2048,
-            false
+                modelName,
+                List.of(new Message("user", prompt)),
+                0.7,
+                2048,
+                false
         );
 
         try {

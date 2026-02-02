@@ -12,20 +12,27 @@ import java.util.List;
 @Component
 public class NvidiaClient implements LlmProvider {
 
-    private final WebClient client;
+    private final WebClient webClient;
+    private final boolean enabled;
     // OFFICIAL NVIDIA API: Llama 3.1 8B (Small & Fast)
     private final String modelName = "meta/llama-3.1-8b-instruct";
 
     public NvidiaClient(
-            @Value("${nvidia.api-key}") String apiKey,
+            @Value("${nvidia.api-key:}") String apiKey, // default empty string
             WebClient.Builder builder
     ) {
-        this.client = builder
-                // GUARANTEED OFFICIAL NVIDIA ENDPOINT
-                .baseUrl("https://integrate.api.nvidia.com/v1")
-                .defaultHeader("Authorization", "Bearer " + apiKey)
-                .defaultHeader("Content-Type", "application/json")
-                .build();
+        this.enabled = !apiKey.isEmpty();
+
+        if (enabled) {
+            this.webClient = builder
+                    .baseUrl("https://integrate.api.nvidia.com/v1")
+                    .defaultHeader("Authorization", "Bearer " + apiKey)
+                    .defaultHeader("Content-Type", "application/json")
+                    .build();
+        } else {
+            this.webClient = null; // won’t be used
+            System.out.println("Warning: Nvidia API key not set. ChimeraClient disabled.");
+        }
     }
 
     @Override
@@ -44,7 +51,7 @@ public class NvidiaClient implements LlmProvider {
         );
 
         try {
-            ChatResponse response = client
+            ChatResponse response = webClient
                     .post()
                     .uri("/chat/completions")
                     .bodyValue(request)

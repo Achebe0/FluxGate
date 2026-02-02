@@ -12,20 +12,26 @@ import java.util.List;
 public class DeepSeekClient implements LlmProvider {
 
     private final WebClient webClient;
+    private final boolean enabled;
     // OFFICIAL NVIDIA API: Using Google Gemma 2 9B (Hosted by Nvidia)
     private final String modelName = "google/gemma-2-9b-it";
 
     public DeepSeekClient(
-            // Reusing the NVIDIA key
-            @Value("${nvidia.api-key}") String apiKey,
+            @Value("${nvidia.api-key:}") String apiKey, // default empty string
             WebClient.Builder builder
     ) {
-        this.webClient = builder
-                // GUARANTEED OFFICIAL NVIDIA ENDPOINT
-                .baseUrl("https://integrate.api.nvidia.com/v1")
-                .defaultHeader("Authorization", "Bearer " + apiKey)
-                .defaultHeader("Content-Type", "application/json")
-                .build();
+        this.enabled = !apiKey.isEmpty();
+
+        if (enabled) {
+            this.webClient = builder
+                    .baseUrl("https://integrate.api.nvidia.com/v1")
+                    .defaultHeader("Authorization", "Bearer " + apiKey)
+                    .defaultHeader("Content-Type", "application/json")
+                    .build();
+        } else {
+            this.webClient = null; // won’t be used
+            System.out.println("Warning: Nvidia API key not set. ChimeraClient disabled.");
+        }
     }
 
     @Override
