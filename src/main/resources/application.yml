@@ -2,12 +2,15 @@ spring:
   application:
     name: FluxGate
   datasource:
-    # On Render/Railway, these variables will be populated from the Environment.
-    # Locally, they default to localhost/postgres/password.
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:fluxgate}
+    # Railway provides DATABASE_URL. If present, use it.
+    # Otherwise, fall back to individual variables or localhost defaults.
+    url: ${DATABASE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:fluxgate}}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
+
+
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -16,6 +19,8 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   rabbitmq:
+    # Railway RabbitMQ plugin usually provides RABBITMQ_URL or similar.
+    # You might need to map variables in Railway dashboard if they differ.
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:guest}
