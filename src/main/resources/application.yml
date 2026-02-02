@@ -23,7 +23,7 @@ spring:
     password: ${RABBITMQ_PASSWORD:guest}
 
 server:
-  port: ${PORT:8080}
+  port: ${PORT}
 
 nvidia:
   api-key: ${NVIDIA_API_KEY:}
