@@ -5,8 +5,8 @@ import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 import com.learnspring.fluxgate.dto.OptimizationResponse;
-// import com.learnspring.fluxgate.dto.PromptLogDTO;
-// import com.learnspring.fluxgate.messaging.LogProducer;
+import com.learnspring.fluxgate.dto.PromptLogDTO;
+import com.learnspring.fluxgate.messaging.LogProducer;
 import com.learnspring.fluxgate.model.PromptLog;
 import com.learnspring.fluxgate.repository.PromptLogRepository;
 import com.learnspring.fluxgate.service.LlmService;
@@ -24,7 +24,7 @@ public class PromptController {
 
     private final LlmService llmService;
     private final PromptLogRepository promptLogRepository;
-    // private final LogProducer logProducer; // Disabled for local dev
+    private final LogProducer logProducer; // Re-enabled for async logging
     
     private final EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
     private final Encoding encoding = registry.getEncoding(EncodingType.CL100K_BASE);
@@ -39,11 +39,11 @@ public class PromptController {
 
     @Autowired
     public PromptController(LlmService llmService, 
-                            PromptLogRepository promptLogRepository
-                            /* LogProducer logProducer */) {
+                            PromptLogRepository promptLogRepository,
+                            LogProducer logProducer) { // Re-enabled
         this.llmService = llmService;
         this.promptLogRepository = promptLogRepository;
-        // this.logProducer = logProducer;
+        this.logProducer = logProducer;
     }
 
     @PostMapping("/optimize")
@@ -59,14 +59,14 @@ public class PromptController {
         if (length > 200 || isComplex) {
             selectedType = LlmService.ModelType.FAST_AND_REASONING;
             routingReason = isComplex 
-                ? "Complex intent detected ('" + getMatchedKeyword(lowerPrompt) + "'). Routing to Llama 3.1 405B (Reasoning)." 
-                : "Long prompt (>200 chars). Routing to Llama 3.1 405B (Reasoning).";
+                ? "Complex intent detected. Routing to Llama 3 8B (Reasoning)." 
+                : "Long prompt. Routing to Llama 3 8B (Reasoning).";
         } else if (length >= 50) {
             selectedType = LlmService.ModelType.FAST;
-            routingReason = "Medium prompt. Routing to Gemma 2 9B (Fast).";
+            routingReason = "Medium prompt. Routing to Llama 3 8B (Fast).";
         } else {
             selectedType = LlmService.ModelType.SMALL;
-            routingReason = "Short/Simple prompt. Routing to Llama 3.1 8B (Small).";
+            routingReason = "Short/Simple prompt. Routing to Llama 3 8B (Small).";
         }
         
         String optimizedPrompt = llmService.optimizePrompt(prompt, selectedType);
@@ -76,9 +76,15 @@ public class PromptController {
         int originalTokens = encoding.countTokens(prompt);
         int optimizedTokens = encoding.countTokens(optimizedPrompt);
         
-        // Direct DB Save (No RabbitMQ)
-        PromptLog log = new PromptLog(originalTokens, optimizedTokens, prompt, optimizedPrompt, modelName);
-        promptLogRepository.save(log);
+        // ASYNC LOGGING via RabbitMQ
+        PromptLogDTO logDTO = new PromptLogDTO(
+            originalTokens,
+            optimizedTokens,
+            prompt,
+            optimizedPrompt,
+            modelName
+        );
+        logProducer.sendLog(logDTO);
 
         OptimizationResponse response = new OptimizationResponse(
             prompt,
