@@ -2,7 +2,7 @@ spring:
   application:
     name: FluxGate
   datasource:
-    # On Render, these variables will be populated from the Environment.
+    # On Render/Railway, these variables will be populated from the Environment.
     # Locally, they default to localhost/postgres/password.
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:fluxgate}
     username: ${DB_USER:postgres}
@@ -21,6 +21,9 @@ spring:
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASSWORD:guest}
 
-# The application code currently binds all clients to this single property
+server:
+  port: ${PORT:8080}
+
+# The application code binds all clients to this single property
 nvidia:
   api-key: ${NVIDIA_API_KEY:}
