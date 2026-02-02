@@ -8,8 +8,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 //@SpringBootTest
 class FluxGateApplicationTests {
 
-    @MockBean
-    private PromptLogRepository promptLogRepository;
+
 
     @Test
     void contextLoads() {
