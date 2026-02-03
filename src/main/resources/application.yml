@@ -3,7 +3,7 @@ spring:
     name: FluxGate
   # --- Database Configuration ---
   datasource:
-    # These placeholders MUST be provided by the environment (Render, Railway, or local .env file)
+    # These placeholders MUST be provided by the environment
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
@@ -17,11 +17,11 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   # --- RabbitMQ Configuration (Optional) ---
   rabbitmq:
-    # If these variables are not set in the environment, RabbitMQ will be disabled.
+    # If these variables are not set, RabbitMQ will be disabled.
     host: ${RABBITMQ_HOST:}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:}
-    password: ${RBITMQ_PASSWORD:}
+    password: ${RABBITMQ_PASSWORD:}
 
 # --- Server Port ---
 server:
