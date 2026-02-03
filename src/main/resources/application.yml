@@ -15,13 +15,13 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  # --- RabbitMQ Configuration ---
+  # --- RabbitMQ Configuration (Optional) ---
   rabbitmq:
-    # These placeholders MUST be provided by the environment
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USER}
-    password: ${RABBITMQ_PASSWORD}
+    # If these variables are not set in the environment, RabbitMQ will be disabled.
+    host: ${RABBITMQ_HOST:}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:}
+    password: ${RBITMQ_PASSWORD:}
 
 # --- Server Port ---
 server:
