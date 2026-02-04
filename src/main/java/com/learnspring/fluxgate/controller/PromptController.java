@@ -4,7 +4,6 @@ import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
-import com.learnspring.fluxgate.dto.OptimizationMetadata;
 import com.learnspring.fluxgate.dto.OptimizationResponse;
 import com.learnspring.fluxgate.dto.PromptLogDTO;
 import com.learnspring.fluxgate.messaging.LogProducer;
@@ -12,11 +11,8 @@ import com.learnspring.fluxgate.model.PromptLog;
 import com.learnspring.fluxgate.repository.PromptLogRepository;
 import com.learnspring.fluxgate.service.LlmService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Set;
@@ -100,79 +96,6 @@ public class PromptController {
         );
 
         return ResponseEntity.ok(response);
-    }
-
-    @PostMapping(value = "/optimize-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<Object>> optimizePromptStream(@RequestBody String prompt) {
-        LlmService.ModelType selectedType;
-        String routingReason;
-        int length = prompt.length();
-        String lowerPrompt = prompt.toLowerCase();
-
-        boolean isComplex = COMPLEX_KEYWORDS.stream().anyMatch(lowerPrompt::contains);
-
-        if (length > 200 || isComplex) {
-            selectedType = LlmService.ModelType.FAST_AND_REASONING;
-            routingReason = isComplex
-                    ? "Complex intent detected. Routing to Llama 3 8B (Reasoning)."
-                    : "Long prompt. Routing to Llama 3 8B (Reasoning).";
-        } else if (length >= 50) {
-            selectedType = LlmService.ModelType.FAST;
-            routingReason = "Medium prompt. Routing to Llama 3 8B (Fast).";
-        } else {
-            selectedType = LlmService.ModelType.SMALL;
-            routingReason = "Short/Simple prompt. Routing to Llama 3 8B (Small).";
-        }
-
-        // 1. Optimize Prompt (Blocking, usually fast)
-        String optimizedPrompt = llmService.optimizePrompt(prompt, selectedType);
-        String modelName = llmService.getModelName(selectedType);
-
-        int originalTokens = encoding.countTokens(prompt);
-        int optimizedTokens = encoding.countTokens(optimizedPrompt);
-
-        // 2. Prepare Metadata Event
-        OptimizationMetadata metadata = new OptimizationMetadata(
-                prompt,
-                optimizedPrompt,
-                originalTokens,
-                optimizedTokens,
-                modelName,
-                routingReason
-        );
-
-        // 3. Log to RabbitMQ (Async)
-        PromptLogDTO logDTO = new PromptLogDTO(
-                originalTokens,
-                optimizedTokens,
-                prompt,
-                optimizedPrompt,
-                modelName
-        );
-        logProducer.sendLog(logDTO);
-
-        // 4. Create the Stream
-        ServerSentEvent<Object> metadataEvent = ServerSentEvent.builder()
-                .event("metadata")
-                .data(metadata)
-                .build();
-
-        Flux<ServerSentEvent<Object>> contentStream = llmService.generateStream(optimizedPrompt, selectedType)
-                .map(chunk -> ServerSentEvent.builder()
-                        .event("content")
-                        .data((Object) chunk)
-                        .build());
-
-        ServerSentEvent<Object> completeEvent = ServerSentEvent.builder()
-                .event("complete")
-                .data("DONE")
-                .build();
-
-        return Flux.concat(
-                Flux.just(metadataEvent),
-                contentStream,
-                Flux.just(completeEvent)
-        );
     }
 
     @GetMapping("/history")

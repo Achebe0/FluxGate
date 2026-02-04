@@ -5,7 +5,7 @@ import { Header } from './components/Header';
 import { PromptForm } from './components/PromptForm';
 import { ErrorMessage } from './components/ErrorMessage';
 import { ResultsDisplay } from './components/ResultsDisplay';
-import type { OptimizationResponse } from './types';
+import type {OptimizationResponse} from './types';
 
 // Use environment variable for Prod, fallback to relative path (proxy) for Dev
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -24,7 +24,10 @@ function App() {
     setError(null);
     setResult(null);
 
-    const url = `${API_BASE_URL}/prompt/optimize-stream`;
+    // Construct the full URL
+    // If API_BASE_URL is '/api', result is '/api/prompt/optimize' (proxied locally)
+    // If API_BASE_URL is 'https://backend.railway.app', result is 'https://backend.railway.app/prompt/optimize'
+    const url = `${API_BASE_URL}/prompt/optimize`;
     console.log('Fetching URL:', url);
 
     try {
@@ -41,72 +44,8 @@ function App() {
         throw new Error(`Failed to optimize prompt: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      if (!response.body) throw new Error('No response body');
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      // Initialize result with empty values
-      let currentResult: OptimizationResponse = {
-        originalPrompt: prompt,
-        optimizedPrompt: '',
-        originalTokens: 0,
-        optimizedTokens: 0,
-        finalResponse: '',
-        selectedModel: '',
-      };
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || ''; // Keep the last incomplete chunk
-
-        for (const line of lines) {
-          if (line.startsWith('event:')) {
-            const parts = line.split('\n');
-            const eventType = parts[0].replace('event:', '').trim();
-            const dataLine = parts[1];
-            
-            if (!dataLine || !dataLine.startsWith('data:')) continue;
-            
-            // CRITICAL FIX: Do NOT trim() the data content, as it removes spaces sent by the LLM
-            // We only remove the 'data:' prefix.
-            // However, we need to be careful. Usually 'data:' is followed by a space.
-            // If the chunk is "data:  ", trim() makes it empty.
-            // We should strip the first 5 chars "data:" and maybe one space if it exists.
-            
-            let data = dataLine.substring(5); 
-            if (data.startsWith(' ')) {
-                data = data.substring(1);
-            }
-
-            if (eventType === 'metadata') {
-              const metadata = JSON.parse(data);
-              currentResult = {
-                ...currentResult,
-                originalPrompt: metadata.originalPrompt,
-                optimizedPrompt: metadata.optimizedPrompt,
-                originalTokens: metadata.originalTokens,
-                optimizedTokens: metadata.optimizedTokens,
-                selectedModel: metadata.modelInfo + (metadata.routingReason ? ` | ${metadata.routingReason}` : ''),
-              };
-              setResult({ ...currentResult });
-            } else if (eventType === 'content') {
-              currentResult = {
-                ...currentResult,
-                finalResponse: currentResult.finalResponse + data,
-              };
-              setResult({ ...currentResult });
-            } else if (eventType === 'complete') {
-              // Done
-            }
-          }
-        }
-      }
+      const data: OptimizationResponse = await response.json();
+      setResult(data);
     } catch (err) {
       console.error('Full Error Details:', err);
       if (err instanceof Error) {

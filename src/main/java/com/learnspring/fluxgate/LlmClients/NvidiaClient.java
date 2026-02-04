@@ -6,7 +6,6 @@ import com.learnspring.fluxgate.dto.Message;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -52,54 +51,20 @@ public class NvidiaClient implements LlmProvider {
         );
 
         try {
-            // Expect an array of ChatResponse and take the first element.
-            ChatResponse[] responseArray = webClient
+            ChatResponse response = webClient
                     .post()
                     .uri("/chat/completions")
                     .bodyValue(request)
                     .retrieve()
-                    .bodyToMono(ChatResponse[].class)
+                    .bodyToMono(ChatResponse.class)
                     .block();
 
-            if(responseArray != null && responseArray.length > 0) {
-                ChatResponse response = responseArray[0];
-                if(response != null && !response.choices().isEmpty()) {
-                    return response.choices().get(0).message().content();
-                }
+            if(response != null && !response.choices().isEmpty()) {
+                return response.choices().get(0).message().content();
             }
         } catch(Exception e){
             return "Error calling Nvidia API: "+ e.getMessage();
         }
         return "No response from Nvidia API";
-    }
-
-    @Override
-    public Flux<String> generateStream(String prompt) {
-        if (!enabled) {
-            return Flux.just("NvidiaClient not configured.");
-        }
-
-        ChatRequest request = new ChatRequest(
-                modelName,
-                List.of(new Message("user", prompt)),
-                0.3,
-                1024,
-                true // Enable streaming
-        );
-
-        return webClient
-                .post()
-                .uri("/chat/completions")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToFlux(ChatResponse.class)
-                .map(response -> {
-                    if (response.choices() != null && !response.choices().isEmpty()) {
-                        String content = response.choices().get(0).delta().content();
-                        return content != null ? content : "";
-                    }
-                    return "";
-                })
-                .onErrorResume(e -> Flux.just("Error: " + e.getMessage()));
     }
 }

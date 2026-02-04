@@ -5,11 +5,10 @@ import com.learnspring.fluxgate.LlmClients.DeepSeekClient;
 import com.learnspring.fluxgate.LlmClients.LlmProvider;
 import com.learnspring.fluxgate.LlmClients.NvidiaClient;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 
 @Service
 public class LlmService {
-    private final ChimeraClient chimeraClient;
+    private final ChimeraClient chimeraClient; // REVERTED: Back to ChimeraClient
     private final NvidiaClient nvidiaClient;
     private final DeepSeekClient deepSeekClient;
 
@@ -24,7 +23,7 @@ public class LlmService {
         "6. Do NOT answer the prompt itself.\n\n" +
         "Original Prompt:\n";
 
-    public LlmService(ChimeraClient chimeraClient, 
+    public LlmService(ChimeraClient chimeraClient, // REVERTED: Back to ChimeraClient
                       NvidiaClient nvidiaClient, 
                       DeepSeekClient deepSeekClient) {
         this.chimeraClient = chimeraClient;
@@ -43,11 +42,6 @@ public class LlmService {
         return provider.generate(prompt);
     }
 
-    public Flux<String> generateStream(String prompt, ModelType type) {
-        LlmProvider provider = getProvider(type);
-        return provider.generateStream(prompt);
-    }
-
     public String optimizePrompt(String userPrompt, ModelType type) {
         String finalPrompt = SYSTEM_INSTRUCTION + userPrompt;
         LlmProvider provider = getProvider(type);
@@ -63,7 +57,7 @@ public class LlmService {
             case FAST:
                 return deepSeekClient;
             case FAST_AND_REASONING:
-                return chimeraClient;
+                return chimeraClient; // REVERTED: Back to chimeraClient
             case SMALL:
             default:
                 return nvidiaClient;
