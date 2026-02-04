@@ -67,12 +67,22 @@ function App() {
 
         for (const line of lines) {
           if (line.startsWith('event:')) {
-            const eventType = line.split('\n')[0].replace('event:', '').trim();
-            const dataLine = line.split('\n')[1];
+            const parts = line.split('\n');
+            const eventType = parts[0].replace('event:', '').trim();
+            const dataLine = parts[1];
             
             if (!dataLine || !dataLine.startsWith('data:')) continue;
             
-            const data = dataLine.replace('data:', '').trim();
+            // CRITICAL FIX: Do NOT trim() the data content, as it removes spaces sent by the LLM
+            // We only remove the 'data:' prefix.
+            // However, we need to be careful. Usually 'data:' is followed by a space.
+            // If the chunk is "data:  ", trim() makes it empty.
+            // We should strip the first 5 chars "data:" and maybe one space if it exists.
+            
+            let data = dataLine.substring(5); 
+            if (data.startsWith(' ')) {
+                data = data.substring(1);
+            }
 
             if (eventType === 'metadata') {
               const metadata = JSON.parse(data);
