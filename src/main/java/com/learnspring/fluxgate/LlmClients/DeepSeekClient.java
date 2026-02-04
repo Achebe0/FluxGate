@@ -6,6 +6,8 @@ import com.learnspring.fluxgate.dto.Message;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+
 import java.util.List;
 
 @Component
@@ -65,5 +67,35 @@ public class DeepSeekClient implements LlmProvider {
             return "Error calling Nvidia API (Gemma): " + e.getMessage();
         }
         return "Error: No response from Nvidia API";
+    }
+
+    @Override
+    public Flux<String> generateStream(String prompt) {
+        if (!enabled) {
+            return Flux.just("DeepSeekClient not configured.");
+        }
+
+        ChatRequest request = new ChatRequest(
+                modelName,
+                List.of(new Message("user", prompt)),
+                0.5,
+                1024,
+                true // Enable streaming
+        );
+
+        return webClient
+                .post()
+                .uri("/chat/completions")
+                .bodyValue(request)
+                .retrieve()
+                .bodyToFlux(ChatResponse.class)
+                .map(response -> {
+                    if (response.choices() != null && !response.choices().isEmpty()) {
+                        String content = response.choices().get(0).delta().content();
+                        return content != null ? content : "";
+                    }
+                    return "";
+                })
+                .onErrorResume(e -> Flux.just("Error: " + e.getMessage()));
     }
 }
