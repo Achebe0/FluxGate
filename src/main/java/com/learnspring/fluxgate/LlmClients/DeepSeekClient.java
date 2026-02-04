@@ -52,16 +52,20 @@ public class DeepSeekClient implements LlmProvider {
         );
 
         try {
-            ChatResponse response = webClient
+            // Expect an array of ChatResponse and take the first element.
+            ChatResponse[] responseArray = webClient
                     .post()
                     .uri("/chat/completions")
                     .bodyValue(request)
                     .retrieve()
-                    .bodyToMono(ChatResponse.class)
+                    .bodyToMono(ChatResponse[].class)
                     .block();
 
-            if (response != null && !response.choices().isEmpty()) {
-                return response.choices().get(0).message().content();
+            if (responseArray != null && responseArray.length > 0) {
+                ChatResponse response = responseArray[0];
+                if (response != null && !response.choices().isEmpty()) {
+                    return response.choices().get(0).message().content();
+                }
             }
         } catch (Exception e) {
             return "Error calling Nvidia API (Gemma): " + e.getMessage();
